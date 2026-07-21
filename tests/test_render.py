@@ -37,9 +37,10 @@ def test_frame_shows_focus_target_clock_score_and_best():
     game_round = Round(0.0, random.Random(1), best_score=7)
     render.draw(screen, game_round, 2.5, prefix_armed=True)
     text = screen.text()
-    assert "◆" in text
-    assert "BOX" in text
-    assert "■" in text
+    assert "╔" in text and "╗" in text
+    assert "┏━━━━━━━┓" in text
+    assert "┃███████┃" in text
+    assert "■ target" in text
     assert "57.5s" in text
     assert "score 0" in text
     assert "best 7" in text
@@ -52,9 +53,11 @@ def test_target_box_and_focus_marker_reach_actual_fake_screen_cells():
     game_round = Round(0.0, random.Random(5))
     render.draw(screen, game_round, 0.0)
     rows = screen.text().splitlines()
-    assert any(" BOX " in row for row in rows)
-    assert any("◆ s1:t1:p1" in row for row in rows)
-    assert any("■■■" in row for row in rows)
+    assert any("┏━━━━━━━┓" in row for row in rows)
+    assert any("┃███████┃" in row for row in rows)
+    assert any("╔" in row and "╗" in row for row in rows)
+    assert "s1:t1:p1" not in screen.text(), "internal pane ids leaked into the UI"
+    assert "BOX" not in screen.text(), "the target should look like a box, not be labelled"
 
 
 def test_renderer_never_writes_out_of_bounds_across_supported_sizes():

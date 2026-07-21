@@ -17,7 +17,6 @@ PAIR_DIM = 4
 
 PREFIX_CHIP = " PREFIX "
 TARGET_GLYPH = "■"
-FOCUS_GLYPH = "◆"
 
 
 def init_colors() -> None:
@@ -117,6 +116,7 @@ def _draw_sidebar(stdscr, game_round: Round, height: int, width: int) -> None:
     sw = sidebar_width(width)
 
     put(stdscr, 0, 1, "spaces", curses.A_BOLD)
+    put(stdscr, 0, max(8, sw - 10), f"{TARGET_GLYPH} target", curses.A_DIM)
     put(stdscr, 1, 0, "─" * sw, curses.A_DIM)
     for index, space in enumerate(board.spaces):
         row = index + 2
@@ -124,8 +124,9 @@ def _draw_sidebar(stdscr, game_round: Round, height: int, width: int) -> None:
             break
         active = index == board.active_space
         target = index == target_space
-        marker = ("▸" if active else " ") + (TARGET_GLYPH if target else " ")
-        text = f"{marker} {index + 1} {space.name}"
+        marker = "▸" if active else " "
+        target_marker = TARGET_GLYPH if target else " "
+        text = f"{marker} {index + 1} {space.name} {target_marker}"
         attr = curses.A_BOLD if active else curses.A_DIM
         if target:
             attr |= pair(PAIR_TARGET) | curses.A_BOLD
@@ -150,7 +151,7 @@ def _draw_tabs(stdscr, game_round: Round, width: int) -> None:
         target = index == target_tab
         active_mark = "▸" if active else " "
         target_mark = TARGET_GLYPH if target else " "
-        label = f" {active_mark}{target_mark}{index + 1}:{tab.name} "
+        label = f" {active_mark} {index + 1}:{tab.name} {target_mark} "
         attr = curses.A_BOLD if active else curses.A_DIM
         if target:
             attr |= pair(PAIR_TARGET) | curses.A_BOLD
@@ -170,7 +171,6 @@ def _draw_panes(stdscr, game_round: Round, width: int, height: int) -> None:
         _draw_pane(
             stdscr,
             rect,
-            pane_id,
             focused=pane_id == board.focused_pane_id,
             target=pane_id == game_round.target_pane_id,
         )
@@ -179,51 +179,48 @@ def _draw_panes(stdscr, game_round: Round, width: int, height: int) -> None:
 def _draw_pane(
     stdscr,
     rect: Rect,
-    pane_id: str,
     *,
     focused: bool,
     target: bool,
 ) -> None:
+    """Draw an otherwise empty pane; focus is carried entirely by its border."""
     if rect.w < 2 or rect.h < 2:
         return
     attr = (pair(PAIR_FOCUS) | curses.A_BOLD) if focused else curses.A_DIM
-    title_marker = FOCUS_GLYPH if focused else "·"
-    target_marker = f" {TARGET_GLYPH} BOX" if target else ""
-    title = f" {title_marker} {pane_id}{target_marker} "
+    if focused:
+        top_left, rule, top_right = "╔", "═", "╗"
+        side, bottom_left, bottom_right = "║", "╚", "╝"
+    else:
+        top_left, rule, top_right = "╭", "─", "╮"
+        side, bottom_left, bottom_right = "│", "╰", "╯"
     inner = max(0, rect.w - 2)
-    title = title[:inner]
-    top_fill = max(0, inner - len(title))
 
-    put(stdscr, rect.y, rect.x, "╭" + title + "─" * top_fill + "╮", attr)
+    put(stdscr, rect.y, rect.x, top_left + rule * inner + top_right, attr)
     for row in range(rect.y + 1, rect.y + rect.h - 1):
-        put(stdscr, row, rect.x, "│", attr)
-        put(stdscr, row, rect.x + rect.w - 1, "│", attr)
-    put(stdscr, rect.y + rect.h - 1, rect.x, "╰" + "─" * inner + "╯", attr)
+        put(stdscr, row, rect.x, side, attr)
+        put(stdscr, row, rect.x + rect.w - 1, side, attr)
+    put(stdscr, rect.y + rect.h - 1, rect.x, bottom_left + rule * inner + bottom_right, attr)
 
     if target:
         _draw_box(stdscr, rect)
 
 
 def _draw_box(stdscr, rect: Rect) -> None:
-    """Paint a high-contrast, text-visible filled box in the target pane."""
+    """Paint one compact, recognizable box—not a wall of target glyphs."""
     available_w = rect.w - 4
     available_h = rect.h - 2
-    if available_w < 3 or available_h < 1:
+    attr = pair(PAIR_TARGET) | curses.A_BOLD
+    if available_w < 5 or available_h < 3:
+        put(stdscr, rect.y + rect.h // 2, rect.x + rect.w // 2, TARGET_GLYPH, attr)
         return
-    box_w = min(13, available_w)
-    box_h = min(5, max(1, available_h - 1))
-    x = rect.x + (rect.w - box_w) // 2
-    y = rect.y + (rect.h - box_h) // 2
-    attr = pair(PAIR_TARGET) | curses.A_BOLD | curses.A_REVERSE
 
-    for offset in range(box_h):
-        if offset == box_h // 2 and box_w >= 5:
-            label = " BOX "
-            left = (box_w - len(label)) // 2
-            line = TARGET_GLYPH * left + label + TARGET_GLYPH * (box_w - left - len(label))
-        else:
-            line = TARGET_GLYPH * box_w
-        put(stdscr, y + offset, x, line, attr)
+    box_w = min(9, available_w)
+    x = rect.x + (rect.w - box_w) // 2
+    y = rect.y + (rect.h - 3) // 2
+    fill = "█" * (box_w - 2)
+    put(stdscr, y, x, "┏" + "━" * (box_w - 2) + "┓", attr)
+    put(stdscr, y + 1, x, "┃" + fill + "┃", attr)
+    put(stdscr, y + 2, x, "┗" + "━" * (box_w - 2) + "┛", attr)
 
 
 def _draw_status(
