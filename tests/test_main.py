@@ -65,10 +65,18 @@ def test_delayed_esc_prefixed_alt_digit_is_not_mistaken_for_quit():
     assert screen.nodelay_values == [True]
 
 
-def test_csi_u_alt_digit_from_iterm_is_normalized():
+def test_csi_u_alt_digit_from_ghostty_is_normalized():
     screen = EscapeScreen(["[", "5", "0", ";", "3", "u"])
     assert _resolve(screen, "\x1b") == "alt+2"
     assert _csi_modified_key("50;3u") == "alt+2"
+
+
+def test_csi_u_ctrl_b_prefix_from_ghostty_is_normalized():
+    screen = EscapeScreen(["[", "9", "8", ";", "5", "u"])
+    assert _resolve(screen, "\x1b") == "ctrl+b"
+    assert _csi_modified_key("98;5u") == "ctrl+b"
+    # Kitty may include alternate key codes, event type, and associated text.
+    assert _csi_modified_key("98:66:98;5:1;2u") == "ctrl+b"
 
 
 def test_xterm_modify_other_keys_alt_digit_is_normalized():

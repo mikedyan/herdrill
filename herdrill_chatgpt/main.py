@@ -5,6 +5,7 @@ from __future__ import annotations
 import curses
 import random
 import re
+import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
 
@@ -197,13 +198,16 @@ def _timed_read(stdscr, wait_ms: int) -> str | int | None:
 
 
 def _csi_modified_key(sequence: str) -> str | None:
-    """Normalize CSI-u and xterm modifyOtherKeys modifier reports.
+    """Normalize Kitty CSI-u and xterm modifyOtherKeys reports.
 
-    iTerm can report Option+2 as ``ESC [ 50 ; 3 u`` instead of either the
-    traditional ``ESC 2`` or the composed ``™`` codepoint. In both protocols,
-    modifier 3 means Alt (the encoded value is one plus a bit mask).
+    Ghostty implements Kitty's keyboard protocol. Under that protocol even the
+    prefix can arrive as ``ESC [ 98 ; 5 u`` (Ctrl+B), followed by Option+2 as
+    ``ESC [ 50 ; 3 u``. Supporting only the latter leaves the prefix unarmed
+    and makes a correctly decoded Alt+digit look inert.
     """
-    match = re.fullmatch(r"(\d+)(?::\d+)?;(\d+)u", sequence)
+    match = re.fullmatch(
+        r"(\d+)(?::\d+)*;(\d+)(?::\d+)?(?:;[\d:]+)?u", sequence
+    )
     if match is None:
         match = re.fullmatch(r"27;(\d+);(\d+)~", sequence)
         if match is None:
@@ -212,22 +216,29 @@ def _csi_modified_key(sequence: str) -> str | None:
         codepoint = int(match.group(2))
     else:
         codepoint = int(match.group(1))
-        modifier = int(match.group(2).split(":", 1)[0])
+        modifier = int(match.group(2))
 
     bits = modifier - 1
-    if not bits & 0b10:  # Alt/Option bit
-        return None
     try:
         base = normalize_char(chr(codepoint))
     except (ValueError, OverflowError):
         return None
     if base is None:
         return None
-    # CSI reports modifiers separately, so a shifted digit arrives as codepoint
-    # "2" plus both Shift and Alt bits rather than as the symbol "@".
-    if bits & 0b1 and len(base) == 1:
-        base = f"shift+{base.lower()}"
-    return f"alt+{base}"
+
+    # The protocol reports modifiers separately from the base key. Strip any
+    # modifier spelling inferred from the text codepoint before rebuilding one
+    # canonical name in the same form Keymap expects.
+    while "+" in base and base.split("+", 1)[0] in {"ctrl", "alt", "shift"}:
+        base = base.split("+", 1)[1]
+    modifiers: list[str] = []
+    if bits & 0b100:
+        modifiers.append("ctrl")
+    if bits & 0b010:
+        modifiers.append("alt")
+    if bits & 0b001:
+        modifiers.append("shift")
+    return "+".join([*modifiers, base.lower()]) if modifiers else base
 
 
 def _read_csi(stdscr) -> str | None:
@@ -416,4 +427,9 @@ def run(
 
 
 def main() -> None:
+    if "--keycheck" in sys.argv[1:]:
+        from .keycheck import main as keycheck_main
+
+        keycheck_main()
+        return
     curses.wrapper(run)
