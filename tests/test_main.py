@@ -1,12 +1,9 @@
-import curses
 import random
 
 from herdrill_chatgpt.keymap import Keymap
 from herdrill_chatgpt.main import (
     Session,
-    _csi_modified_key,
     _read_utf8,
-    _resolve,
     normalize_input,
     normalize_key,
     play_script,
@@ -32,47 +29,6 @@ class ByteScreen:
 
 def test_narrow_curses_reassembles_option_codepoint_from_utf8_bytes():
     assert _read_utf8(ByteScreen([0xE2, 0x84, 0xA2])) == "™"
-
-
-class EscapeScreen:
-    def __init__(self, values):
-        self.values = list(values)
-        self.waiting = False
-        self.waits = []
-        self.nodelay_values = []
-
-    def get_wch(self):
-        if not self.values:
-            raise curses.error()
-        value = self.values[0]
-        if value is None:
-            self.values.pop(0)
-            raise curses.error()
-        return self.values.pop(0)
-
-    def timeout(self, milliseconds):
-        self.waits.append(milliseconds)
-        self.waiting = True
-
-    def nodelay(self, value):
-        self.nodelay_values.append(value)
-
-
-def test_delayed_esc_prefixed_alt_digit_is_not_mistaken_for_quit():
-    screen = EscapeScreen([None, "2"])
-    assert _resolve(screen, "\x1b") == "alt+2"
-    assert screen.waits, "the reader never waited for iTerm's second write"
-    assert screen.nodelay_values == [True]
-
-
-def test_csi_u_alt_digit_from_iterm_is_normalized():
-    screen = EscapeScreen(["[", "5", "0", ";", "3", "u"])
-    assert _resolve(screen, "\x1b") == "alt+2"
-    assert _csi_modified_key("50;3u") == "alt+2"
-
-
-def test_xterm_modify_other_keys_alt_digit_is_normalized():
-    assert _csi_modified_key("27;3;50~") == "alt+2"
 
 
 def test_prefix_is_a_one_key_latch_even_when_chord_is_unbound():

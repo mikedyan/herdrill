@@ -26,15 +26,8 @@ Requires Python 3.11+ and no third-party runtime packages.
 
 The game reads `~/.config/herdr/config.toml`, including the configured prefix
 and workspace/tab/pane bindings. Missing or malformed config falls back to
-herdr defaults. With your current config, use:
-
-- `ctrl+b`, then `1..9` — switch space
-- `ctrl+b`, then `option+1..9` — switch tab
-- `ctrl+b`, then `h/j/k/l` — move between panes
-
-The keys are sequential: release `ctrl+b` before pressing the second chord.
-Composed macOS Option characters, traditional ESC-prefixed Alt input, high-bit
-Meta, and modern iTerm CSI-u modifier reports are all normalized.
+herdr defaults. On stock macOS Terminal, composed Option+digit characters are
+normalized to the corresponding `alt+digit` bindings.
 
 `esc` quits a live round. After 60 seconds, any key starts another round;
 `q`/`esc` quits. The local best is stored atomically in
