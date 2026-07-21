@@ -1,7 +1,7 @@
 import random
 
-from herdrill_chatgpt.ramp import TIERS, build_board
-from herdrill_chatgpt.round import Round
+from herdrill.ramp import TIERS, build_board
+from herdrill.round import Round
 
 
 def clear_tier_zero_target(game_round, now):
@@ -64,6 +64,43 @@ def test_tab_action_clears_when_it_focuses_target_tab():
     game_round.target_pane_id = board.spaces[0].tabs[1].focused_pane_id
     assert game_round.apply("switch_tab", index=2, now=1.0)
     assert game_round.score == 1
+
+
+def test_next_tab_action_wraps_and_clears_the_target_tab():
+    game_round = Round(0.0, random.Random(0))
+    game_round.tier = TIERS[1]
+    for seed in range(100):
+        board = build_board(game_round.tier, random.Random(seed))
+        if len(board.spaces[0].tabs) > 1:
+            break
+    game_round.board = board
+    game_round.target_pane_id = board.spaces[0].tabs[1].focused_pane_id
+    assert game_round.apply("next_tab", now=1.0)
+    assert game_round.score == 1
+
+
+def test_previous_tab_action_wraps_and_clears_the_target_tab():
+    game_round = Round(0.0, random.Random(0))
+    game_round.tier = TIERS[1]
+    for seed in range(100):
+        board = build_board(game_round.tier, random.Random(seed))
+        if len(board.spaces[0].tabs) > 1:
+            break
+    game_round.board = board
+    last_tab = board.spaces[0].tabs[-1]
+    game_round.target_pane_id = last_tab.focused_pane_id
+    assert game_round.apply("previous_tab", now=1.0)
+    assert game_round.score == 1
+
+
+def test_pane_cycle_actions_wrap_and_clear_targets():
+    next_round = Round(0.0, random.Random(1))
+    assert next_round.apply("cycle_pane_next", now=1.0)
+    assert next_round.score == 1
+
+    previous_round = Round(0.0, random.Random(1))
+    assert previous_round.apply("cycle_pane_previous", now=1.0)
+    assert previous_round.score == 1
 
 
 def test_ignored_actions_do_not_change_round():

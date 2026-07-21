@@ -1,4 +1,4 @@
-"""Pure board model and split-tree geometry for herdr-jump."""
+"""Pure board model and split-tree geometry for Herdrill."""
 
 from __future__ import annotations
 
@@ -144,7 +144,7 @@ class Board:
         self.spaces[0].tabs[0].focused_pane_id = self.origin_pane_id
 
     def switch_workspace(self, index: int) -> bool:
-        """Switch to a one-based space index, as herdr's binding does."""
+        """Switch to a one-based space index, as Herdr's binding does."""
         wanted = index - 1
         if not 0 <= wanted < len(self.spaces):
             return False
@@ -173,6 +173,37 @@ class Board:
         changed = wanted != space.active_tab
         space.active_tab = wanted
         return changed
+
+    def previous_tab(self) -> bool:
+        space = self.current_space
+        if len(space.tabs) < 2:
+            return False
+        space.active_tab = (space.active_tab - 1) % len(space.tabs)
+        return True
+
+    def next_tab(self) -> bool:
+        space = self.current_space
+        if len(space.tabs) < 2:
+            return False
+        space.active_tab = (space.active_tab + 1) % len(space.tabs)
+        return True
+
+    def cycle_pane_next(self) -> bool:
+        return self._cycle_pane(1)
+
+    def cycle_pane_previous(self) -> bool:
+        return self._cycle_pane(-1)
+
+    def _cycle_pane(self, step: int) -> bool:
+        tab = self.current_tab
+        panes = tab.panes()
+        if len(panes) < 2:
+            return False
+        current = next(
+            index for index, pane in enumerate(panes) if pane.id == tab.focused_pane_id
+        )
+        tab.focused_pane_id = panes[(current + step) % len(panes)].id
+        return True
 
     def focus_direction(self, direction: Direction) -> bool:
         tab = self.current_tab

@@ -1,4 +1,4 @@
-"""Pure state machine for one timed herdr-jump round."""
+"""Pure state machine for one timed Herdrill round."""
 
 from __future__ import annotations
 
@@ -22,6 +22,10 @@ NAVIGATION_ACTIONS = {
     "previous_workspace",
     "next_workspace",
     "switch_tab",
+    "previous_tab",
+    "next_tab",
+    "cycle_pane_next",
+    "cycle_pane_previous",
     *DIRECTION_ACTIONS,
 }
 
@@ -76,7 +80,7 @@ class Round:
         index: int | None = None,
         now: float,
     ) -> bool:
-        """Apply one herdr action and return whether it cleared a box."""
+        """Apply one Herdr action and return whether it cleared a box."""
         if self.tick(now) or action not in NAVIGATION_ACTIONS:
             return False
 
@@ -88,6 +92,14 @@ class Round:
             self.board.next_workspace()
         elif action == "switch_tab" and index is not None:
             self.board.switch_tab(index)
+        elif action == "previous_tab":
+            self.board.previous_tab()
+        elif action == "next_tab":
+            self.board.next_tab()
+        elif action == "cycle_pane_next":
+            self.board.cycle_pane_next()
+        elif action == "cycle_pane_previous":
+            self.board.cycle_pane_previous()
         elif direction := DIRECTION_ACTIONS.get(action):
             self.board.focus_direction(direction)
 

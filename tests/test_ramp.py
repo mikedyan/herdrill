@@ -1,7 +1,7 @@
 import random
 
-from herdrill_chatgpt.board import Split
-from herdrill_chatgpt.ramp import TIERS, build_board, tier_for
+from herdrill.board import Split
+from herdrill.ramp import TIERS, build_board, tier_for
 
 
 def test_tier_thresholds_are_stepped_at_5_10_15():

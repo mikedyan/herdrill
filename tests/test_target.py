@@ -1,7 +1,7 @@
 import random
 
-from herdrill_chatgpt.ramp import TIERS, build_board
-from herdrill_chatgpt.target import place_target
+from herdrill.ramp import TIERS, build_board
+from herdrill.target import place_target
 
 
 def test_target_never_spawns_on_current_focus():

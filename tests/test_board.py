@@ -1,4 +1,4 @@
-from herdrill_chatgpt.board import (
+from herdrill.board import (
     Board,
     Leaf,
     Pane,
@@ -59,6 +59,10 @@ def test_space_and_tab_switching_are_one_based_and_preserve_tab_focus():
         ]
     )
     assert board.switch_tab(2)
+    assert board.next_tab()
+    assert board.current_tab.id == "t1"
+    assert board.previous_tab()
+    assert board.current_tab.id == "t2"
     board.current_tab.focused_pane_id = "t2b"
     assert board.switch_workspace(2)
     assert board.focused_pane_id == "t3a"
@@ -66,6 +70,31 @@ def test_space_and_tab_switching_are_one_based_and_preserve_tab_focus():
     assert board.current_tab.id == "t2"
     assert board.focused_pane_id == "t2b"
     assert not board.switch_workspace(9)
+
+
+def test_pane_cycle_uses_stable_tree_order_and_wraps():
+    board = simple_board()
+    assert board.focused_pane_id == "left"
+    assert board.cycle_pane_next()
+    assert board.focused_pane_id == "top"
+    assert board.cycle_pane_next()
+    assert board.focused_pane_id == "bottom"
+    assert board.cycle_pane_next()
+    assert board.focused_pane_id == "left"
+    assert board.cycle_pane_previous()
+    assert board.focused_pane_id == "bottom"
+
+
+def test_single_pane_does_not_report_a_cycle():
+    board = Board([Space("s", "space", [Tab("t", "tab", Leaf(Pane("only")))])])
+    assert not board.cycle_pane_next()
+    assert not board.cycle_pane_previous()
+
+
+def test_single_tab_does_not_report_a_cycle():
+    board = simple_board()
+    assert not board.previous_tab()
+    assert not board.next_tab()
 
 
 def test_locate_and_reset_to_origin():

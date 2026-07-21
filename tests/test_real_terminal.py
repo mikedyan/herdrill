@@ -79,6 +79,11 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
 
     home = tmp_path / "home"
     home.mkdir()
+    settings_dir = home / ".herdrill"
+    settings_dir.mkdir()
+    (settings_dir / "settings.json").write_text(
+        '{"version":2,"target_sound":"off","control_mode":"herdrill"}\n'
+    )
     env = dict(os.environ)
     env.update(
         HOME=str(home),
@@ -91,7 +96,7 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
 
     try:
         process = subprocess.Popen(
-            [os.path.join(ROOT, "herdrill-chatgpt")],
+            [os.path.join(ROOT, "bin", "herdrill")],
             cwd=ROOT,
             env=env,
             stdin=slave,
@@ -106,6 +111,7 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
     os.close(slave)
 
     output = bytearray()
+    started = False
     sent = False
     deadline = time.monotonic() + 5.0
     try:
@@ -120,13 +126,18 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
                     break
                 output.extend(chunk)
 
+            screen = _screen_from_ansi(bytes(output))
+            if not started and b"enter / space start" in output:
+                os.write(master, b" ")
+                started = True
+
             # Tier zero is always one side-by-side split: focus starts left and
             # the only valid target is right. These are exactly the bytes a
             # terminal sends for ctrl+b followed by l.
-            if not sent and (b"score 0" in output or len(output) > 100):
+            if started and not sent and "score 0" in screen[-1]:
                 os.write(master, b"\x02l")
                 sent = True
-            if sent and "score 1" in _screen_from_ansi(bytes(output))[-1]:
+            if sent and "score 1" in screen[-1]:
                 break
     finally:
         if process.poll() is None:
@@ -141,6 +152,7 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
     decoded = output.decode("utf-8", "replace")
     if "setupterm" in decoded.lower() or "unsupported locale" in decoded.lower():
         pytest.skip(decoded)
+    assert started, f"game never drew its start screen: {decoded!r}"
     assert sent, f"game never drew its first frame: {decoded!r}"
     final_screen = _screen_from_ansi(bytes(output))
     assert "score 1" in final_screen[-1], (

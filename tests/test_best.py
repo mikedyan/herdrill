@@ -1,6 +1,6 @@
 import json
 
-from herdrill_chatgpt.best import load_best, save_best
+from herdrill.best import load_best, save_best
 
 
 def test_missing_and_corrupt_best_are_zero(tmp_path):
@@ -18,7 +18,12 @@ def test_best_round_trips_and_creates_parent(tmp_path):
     path = tmp_path / "new" / "best.json"
     assert save_best(17, str(path))
     assert load_best(str(path)) == 17
-    assert json.loads(path.read_text()) == {"best": 17}
+    payload = json.loads(path.read_text())
+    assert payload["version"] == 2
+    assert payload["records"][0]["name"] == "PLAYER"
+    assert payload["records"][0]["score"] == 17
+    assert payload["records"][0]["date"]
+    assert payload["records"][0]["time"]
     assert not list(path.parent.glob("*.tmp"))
 
 

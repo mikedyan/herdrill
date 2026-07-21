@@ -3,14 +3,22 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "herdrill-chatgpt"
-version = "0.1.0"
-description = "A terminal finger-agility drill for herdr navigation"
+name = "herdrill"
+version = "1.1.0"
+description = "A terminal finger-agility drill for Herdr navigation"
+readme = "README.md"
 requires-python = ">=3.11"
+keywords = ["herdr", "terminal", "tui", "typing", "navigation"]
+classifiers = [
+    "Environment :: Console :: Curses",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Games/Entertainment",
+]
 dependencies = []
 
 [project.scripts]
-herdrill-chatgpt = "herdrill_chatgpt.main:main"
+herdrill = "herdrill.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
