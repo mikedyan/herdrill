@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import curses
 import random
+import re
 import time
 from collections.abc import Callable, Iterable, Iterator
 
@@ -15,6 +16,11 @@ from .round import NAVIGATION_ACTIONS, Round
 
 ESC = 27
 FRAME_SECONDS = 1 / 30
+# An ESC-prefixed Alt chord can arrive in two kernel reads. Waiting briefly
+# avoids mistaking its first byte for the quit key; a bare escape merely takes
+# this many extra milliseconds to quit.
+ESCAPE_WAIT_MS = 35
+CSI_WAIT_MS = 8
 
 # macOS Terminal.app's Option+digit codepoints on a US keyboard when Option is
 # not configured as Meta. This is the owner's real switch-tab input path.
@@ -174,15 +180,90 @@ def _unget_input(value: str | int) -> None:
         _unget(ord(value))
 
 
+def _timed_read(stdscr, wait_ms: int) -> str | int | None:
+    """Read now, then wait briefly if an escape sequence is between writes."""
+    value = read_input(stdscr)
+    if value is not None:
+        return value
+    timeout = getattr(stdscr, "timeout", None)
+    nodelay = getattr(stdscr, "nodelay", None)
+    if timeout is None or nodelay is None:
+        return None
+    timeout(wait_ms)
+    try:
+        return read_input(stdscr)
+    finally:
+        nodelay(True)
+
+
+def _csi_modified_key(sequence: str) -> str | None:
+    """Normalize CSI-u and xterm modifyOtherKeys modifier reports.
+
+    iTerm can report Option+2 as ``ESC [ 50 ; 3 u`` instead of either the
+    traditional ``ESC 2`` or the composed ``™`` codepoint. In both protocols,
+    modifier 3 means Alt (the encoded value is one plus a bit mask).
+    """
+    match = re.fullmatch(r"(\d+)(?::\d+)?;(\d+)u", sequence)
+    if match is None:
+        match = re.fullmatch(r"27;(\d+);(\d+)~", sequence)
+        if match is None:
+            return None
+        modifier = int(match.group(1))
+        codepoint = int(match.group(2))
+    else:
+        codepoint = int(match.group(1))
+        modifier = int(match.group(2).split(":", 1)[0])
+
+    bits = modifier - 1
+    if not bits & 0b10:  # Alt/Option bit
+        return None
+    try:
+        base = normalize_char(chr(codepoint))
+    except (ValueError, OverflowError):
+        return None
+    if base is None:
+        return None
+    # CSI reports modifiers separately, so a shifted digit arrives as codepoint
+    # "2" plus both Shift and Alt bits rather than as the symbol "@".
+    if bits & 0b1 and len(base) == 1:
+        base = f"shift+{base.lower()}"
+    return f"alt+{base}"
+
+
+def _read_csi(stdscr) -> str | None:
+    """Read the tail after ``ESC [`` and recognize a modified key report."""
+    tail = ""
+    for _ in range(24):
+        value = _timed_read(stdscr, CSI_WAIT_MS)
+        if value is None:
+            return None
+        if isinstance(value, int):
+            if not 0 <= value <= 0x7F:
+                return None
+            char = chr(value)
+        else:
+            char = value
+        if len(char) != 1:
+            return None
+        tail += char
+        if char.isalpha() or char == "~":
+            break
+    return _csi_modified_key(tail)
+
+
 def _resolve(stdscr, value: str | int) -> str | None:
-    """Distinguish bare escape from the ESC prefix used by Alt chords."""
+    """Distinguish bare escape from every common Alt-key encoding."""
     name = normalize_input(value)
     if name != "esc":
         return name
-    following = read_input(stdscr)
+
+    following = _timed_read(stdscr, ESCAPE_WAIT_MS)
     if following is None:
         return "esc"
     following_name = normalize_input(following)
+    if following_name == "[":
+        # Modern iTerm/kitty modifier reporting: ESC [ codepoint ; modifier u.
+        return _read_csi(stdscr)
     if following_name is None or following_name == "esc":
         _unget_input(following)
         return "esc"
