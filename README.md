@@ -4,27 +4,22 @@
 
 > **Aim training for your terminal-multiplexing fingers.**
 
-Targets appear. Panes multiply. The clock is rude. Navigate with your real
-[Herdr](https://herdr.dev) controls and discover whether those shortcuts are
-muscle memory—or merely optimistic documentation.
+Herdrill is a 60-second terminal game: a target lights up in a pane, and you
+get there using your real [Herdr](https://herdr.dev) bindings. Clear enough
+targets and the board adds tabs, then spaces, then doubts. It is the fastest
+known way to discover that `prefix+Shift+3` is not, in fact, muscle memory yet.
 
-Herdrill is a 60-second terminal game about getting to the right pane as fast
-as possible. Clear enough targets and the board adds tabs, spaces, and
-increasingly unreasonable demands on your spatial memory. It is less painful
-than learning in production and more socially acceptable than blaming your keyboard.
-
-## The highly sophisticated rules
+## Rules
 
 1. A red target appears in a pane.
 2. Move focus to that pane.
-3. Feel briefly unstoppable.
-4. Repeat until the clock reaches zero.
+3. Repeat until the clock reaches zero.
 
-The board becomes more complicated after 5, 10, and 15 clears. Your score is
-saved to a local leaderboard, complete with the date and exact time of your
-triumph—or cautionary tale.
+The board gets more complicated after 5, 10, and 15 clears. Every score is
+saved to a local leaderboard with a full timestamp, so there is a permanent
+record either way.
 
-## Install before your confidence returns
+## Install
 
 Herdrill requires Python 3.11+ and has no third-party runtime dependencies.
 
@@ -43,13 +38,12 @@ To try it without installing:
 python3 -m herdrill
 ```
 
-## It borrows your controls, politely
+## Controls
 
 Herdrill starts in **Automatic** control mode. It checks `$HERDR_CONFIG_PATH`
 and then `~/.config/herdr/config.toml`, layers your custom bindings over
 Herdr's built-in controls, and uses the result in the game. It reads only the
-`[keys]` table and never edits your Herdr config. No shortcuts are harmed in
-the making of this drill.
+`[keys]` table and never writes to your Herdr config.
 
 The game understands:
 
@@ -59,16 +53,16 @@ The game understands:
 - custom prefixes, direct chords, binding arrays, and indexed `1..9` bindings
 
 There is deliberately no workspace picker. Agent, layout, command, and other
-unsupported actions remain inert while reserving their configured chords. That
-prevents Herdrill from teaching a key to do something your real setup says it
-does not.
+unsupported actions stay inert but keep their configured chords reserved, so
+the game can never teach your fingers something your real setup will refuse
+to honor.
 
 If Herdr is unavailable—or its controls cannot reach every part of the
 game—Herdrill falls back to its complete built-in profile and explains why in
 Settings. You can also select **Herdrill defaults** manually whenever you want
 a known layout instead of your everyday configuration.
 
-### Built-in controls
+### Built-in profile
 
 | Destination | Binding |
 |---|---|
@@ -80,24 +74,23 @@ a known layout instead of your everyday configuration.
 | Previous/next space | `prefix+Shift+K/J` |
 
 `prefix+1..9` remains reserved for agents and is intentionally inert. The game
-has no agents; it already has you.
+has no agents. It has you.
 
 On stock macOS Terminal, composed Option+digit characters are normalized to
 the corresponding `alt+digit` bindings.
 
-## Buttons worth knowing
+## Menu keys
 
 - Enter or Space — start a round
 - `s` — open settings
 - `q` or Escape — quit from a menu
-- Escape during a round — abandon the evidence
+- Escape during a round — end it early
 
-Settings show the resolved control source, effective navigation bindings, and
-any import warnings. They also offer ten macOS system sounds with previews,
-because clearing a target should sound at least slightly important. Muting is
-available for people with dignity.
+Settings show the resolved control source, the effective navigation bindings,
+and any import warnings. They also offer ten macOS system sounds with
+previews. There is a mute option.
 
-## Scores, shame, and local files
+## Local files
 
 Everything stays on your computer:
 
@@ -106,8 +99,8 @@ Everything stays on your computer:
 
 Herdrill stores up to 100 results and displays the top 10. Writes are atomic,
 malformed files do not prevent startup, and older single-best data is migrated
-automatically. There are no accounts, analytics, uploads, seasons, battle
-passes, or suspiciously valuable terminal cosmetics.
+automatically. There are no accounts, no analytics, no uploads, and no battle
+pass.
 
 ## Development
 
