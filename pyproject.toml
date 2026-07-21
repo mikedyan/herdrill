@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "herdrill-chatgpt"
+version = "0.1.0"
+description = "A terminal finger-agility drill for herdr navigation"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+herdrill-chatgpt = "herdrill_chatgpt.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
