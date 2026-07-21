@@ -134,7 +134,7 @@ def test_real_binary_accepts_real_prefix_and_pane_navigation_bytes(tmp_path):
             # Tier zero is always one side-by-side split: focus starts left and
             # the only valid target is right. These are exactly the bytes a
             # terminal sends for ctrl+b followed by l.
-            if started and not sent and "score 0" in screen[-1]:
+            if started and not sent and b"score 0" in output:
                 os.write(master, b"\x02l")
                 sent = True
             if sent and "score 1" in screen[-1]:
